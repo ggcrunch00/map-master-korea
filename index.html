@@ -86,6 +86,25 @@ button:focus-visible, [tabindex]:focus-visible { outline: 3px solid var(--accent
 .note { font-size: 0.75rem; color: var(--muted); line-height: 1.55; margin: auto 0 0; }
 .best { font-size: 0.85rem; color: var(--muted); margin: 0; font-variant-numeric: tabular-nums; }
 
+
+/* 게임 목록 */
+.groups { display: flex; flex-direction: column; gap: 22px; }
+.group h2 { font-family: var(--display); font-weight: 400; font-size: 1.25rem; margin: 0; letter-spacing: 0.02em; }
+.group > p { margin: 2px 0 10px; font-size: 0.82rem; color: var(--muted); }
+.cards { display: grid; gap: 8px; }
+.card { display: grid; gap: 2px; text-align: left; border: 1.5px solid var(--panel-line); background: var(--panel); border-radius: var(--r); padding: 11px 13px; position: relative; }
+.card b { font-size: 1rem; padding-right: 64px; }
+.card span { font-size: 0.82rem; color: var(--muted); line-height: 1.45; word-break: keep-all; }
+.card em { position: absolute; top: 11px; right: 12px; font-style: normal; font-size: 0.72rem; font-weight: 700; color: var(--accent); }
+.card:not(:disabled):hover { border-color: var(--accent); }
+.card:disabled { background: var(--chip); border-style: dashed; cursor: default; }
+.card:disabled b { color: var(--muted); }
+.card:disabled em { color: var(--muted); }
+.back { display: inline-flex; align-items: center; gap: 4px; align-self: flex-start; border: 0; background: none; padding: 4px 6px 4px 0; color: var(--muted); font-weight: 700; font-size: 0.88rem; }
+.back svg { width: 18px; height: 18px; stroke: currentColor; fill: none; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+.setup-head h2 { font-family: var(--display); font-weight: 400; font-size: 1.6rem; margin: 0; line-height: 1.15; }
+.setup-head p:last-child { margin: 6px 0 0; font-size: 0.88rem; color: var(--muted); line-height: 1.5; word-break: keep-all; }
+.setup-head .label { margin-bottom: 4px; }
 /* 문제 화면 */
 .hud { display: flex; gap: 8px; font-variant-numeric: tabular-nums; }
 .hud div { flex: 1; background: var(--chip); border-radius: 8px; padding: 8px 10px; }
@@ -181,13 +200,19 @@ button:disabled { opacity: 0.45; cursor: default; }
     </div>
 
     <!-- 처음 화면 -->
-    <section id="menu" style="display:contents">
-      <div>
-        <p class="label">놀이</p>
-        <div class="chips seg" id="modeChips">
-          <button class="chip" data-m="quiz" aria-pressed="true">지리 문제</button>
-          <button class="chip" data-m="name" aria-pressed="false">이름 찾기</button>
-        </div>
+    <!-- 게임 목록 -->
+    <section id="home" style="display:contents">
+      <div id="groups" class="groups"></div>
+      <p class="note">2026년 7월 1일 행정구역 기준(전남광주통합특별시, 인천 제물포구·영종구·서해구·검단구 반영). 경계: 통계청 SGIS 행정동 경계를 admdongkor(MIT)가 정리한 자료를 가공.</p>
+    </section>
+
+    <!-- 게임 설정 -->
+    <section id="setup" style="display:contents" hidden>
+      <button class="back" id="backBtn"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg>게임 목록</button>
+      <div class="setup-head">
+        <p class="label" id="setGroup"></p>
+        <h2 id="setTitle"></h2>
+        <p id="setDesc"></p>
       </div>
       <div id="quizOpts">
         <p class="label">분야</p>
@@ -215,7 +240,7 @@ button:disabled { opacity: 0.45; cursor: default; }
       </div>
       <button class="go" id="goBtn">시작하기</button>
       <p class="best" id="bestLine"></p>
-      <p class="note"><span id="howTo"></span> 지도는 끌어서 옮기고, 휠이나 두 손가락으로 크게 볼 수 있어요.<br><br>2026년 7월 1일 행정구역 기준(전남광주통합특별시, 인천 제물포구·영종구·서해구·검단구 반영). 경계: 통계청 SGIS 행정동 경계를 admdongkor(MIT)가 정리한 자료를 가공.</p>
+      <p class="note"><span id="howTo"></span> 지도는 끌어서 옮기고, 휠이나 두 손가락으로 크게 볼 수 있어요.</p>
     </section>
 
     <!-- 문제 화면 -->
@@ -260,7 +285,7 @@ button:disabled { opacity: 0.45; cursor: default; }
       <button class="go" id="againBtn">다시 하기</button>
       <div class="row">
         <button class="ghost" id="retryWrongBtn">틀린 곳만</button>
-        <button class="ghost" id="homeBtn">처음으로</button>
+        <button class="ghost" id="homeBtn">게임 목록</button>
       </div>
     </section>
   </aside>
@@ -432,22 +457,68 @@ function paintSound() {
 $("#soundBtn").onclick = () => { soundOn = !soundOn; store.set("sound", soundOn); paintSound(); };
 paintSound();
 
-// ───────── 처음 화면 ─────────
-// mode: "quiz"(지리 문제) | "name"(이름 찾기)
-const G = { mode: store.get("mode", "quiz"), lv: 1, sido: store.get("sido", "11"), cat: "전체", n: 10, on: false };
+// ───────── 게임 목록 ─────────
+// 새 게임은 GAMES에 한 줄 넣으면 목록에 나와요. engine이 없으면 '준비 중'으로 보여요.
+//   engine: "name"(이름 보고 찾기) | "quiz"(문제 읽고 찾기)
+const GROUPS = [
+  { id: "map", title: "지도 놀이", desc: "지도 감각을 기르는 지리 게임" },
+  { id: "book", title: "교과서 문제", desc: "사회 교과서 내용을 지도에서 확인해요" },
+  { id: "hist", title: "역사", desc: "역사 속 장소를 지도에서 찾아요" },
+];
 const QB = window.GEO_Q || [];
+const GAMES = [
+  { id: "find", group: "map", engine: "name", title: "이름 찾기", desc: "시도·시군구 이름을 보고 지도에서 찾아요.", size: "시도 16 · 시군구 230" },
+  { id: "fill", group: "map", title: "빈 지도 채우기", desc: "빈 지도에 시도·시군구 이름을 모두 써 넣어요." },
+  { id: "shape", group: "map", title: "모양 보고 맞히기", desc: "땅 모양만 보고 어느 고장인지 맞혀요." },
+  { id: "hot", group: "map", title: "숨은 고장 찾기", desc: "누른 곳이 가까울수록 붉게, 멀수록 파랗게 알려 줘요." },
+  { id: "route", group: "map", title: "이웃 따라 여행", desc: "맞닿은 고장만 지나서 목적지까지 가요." },
+  { id: "quiz", group: "book", engine: "quiz", title: "국토 지리 문제", desc: "산·강·섬·도시에 관한 문제를 읽고 지도에서 정답을 찾아요.", size: QB.length + "문제" },
+  { id: "product", group: "book", title: "특산물 고향 찾기", desc: "지리적표시 특산물의 고향을 찾고 도감을 모아요." },
+  { id: "local", group: "book", title: "우리 고장", desc: "선생님이 고른 우리 고장 문제를 풀어요." },
+  { id: "histmap", group: "hist", title: "역사의 현장", desc: "역사적 사건이 일어난 곳을 지도에서 찾아요." },
+];
+const gameBy = Object.fromEntries(GAMES.map((g) => [g.id, g]));
+$("#groups").innerHTML = GROUPS.map((gr) => `
+  <section class="group">
+    <h2>${gr.title}</h2><p>${gr.desc}</p>
+    <div class="cards">${GAMES.filter((g) => g.group === gr.id).map((g) => `
+      <button class="card" data-g="${g.id}" ${g.engine ? "" : "disabled"}>
+        <b>${g.title}</b><span>${g.desc}</span>
+        <em>${g.engine ? g.size : "준비 중"}</em>
+      </button>`).join("")}
+    </div>
+  </section>`).join("");
+
+// ───────── 게임 설정 ─────────
+const G = { game: null, mode: null, lv: 1, sido: store.get("sido", "11"), cat: "전체", n: 10, on: false };
 const CATS = ["전체", ...new Set(QB.map((q) => q.cat))];
 const SIDO2 = M.sido.filter((s) => unitsOfSido(s.c).length > 1);
 $("#sidoChips").innerHTML = SIDO2.map((s) => `<button class="chip" data-s="${s.c}" aria-pressed="false">${s.short}</button>`).join("");
 $("#catChips").innerHTML = CATS.map((c) => `<button class="chip" data-c="${c}" aria-pressed="false">${c} <small>${c === "전체" ? QB.length : QB.filter((q) => q.cat === c).length}</small></button>`).join("");
 function pressed(box, attr, val) { box.querySelectorAll("button").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset[attr] === String(val)))); }
 function bestKey() { return G.mode === "quiz" ? "bestQ." + G.cat : G.lv === 2 ? "best2." + G.sido : "best" + G.lv; }
+function setHash(h) { try { if (location.hash.slice(1) !== h) history.replaceState(null, "", h ? "#" + h : location.pathname + location.search); } catch {} }
+function openGame(id) {
+  const g = gameBy[id]; if (!g || !g.engine) return goHome();
+  G.game = id; G.mode = g.engine; setHash(id);
+  $("#setGroup").textContent = GROUPS.find((x) => x.id === g.group).title;
+  $("#setTitle").textContent = g.title; $("#setDesc").textContent = g.desc;
+  show("setup"); paintMenu();
+}
+function goHome() {
+  G.game = null; G.mode = null; setHash("");
+  $("#brandSub").textContent = "2026년 7월 행정구역";
+  show("home"); clearMap(); svg.classList.remove("lv1"); home = { x: 0, y: 0, width: M.w, height: M.h }; fitHome();
+}
+$("#groups").onclick = (e) => { const b = e.target.closest(".card"); if (b && !b.disabled) openGame(b.dataset.g); };
+$("#backBtn").onclick = goHome;
+window.addEventListener("hashchange", () => { if (G.on) return; const h = location.hash.slice(1); if (h && h !== G.game) openGame(h); else if (!h && G.game) goHome(); });
 function paintMenu() {
-  pressed($("#modeChips"), "m", G.mode); pressed($("#stages"), "lv", G.lv); pressed($("#sidoChips"), "s", G.sido);
+  pressed($("#stages"), "lv", G.lv); pressed($("#sidoChips"), "s", G.sido);
   pressed($("#catChips"), "c", G.cat); pressed($("#countChips"), "n", G.n);
   $("#nameOpts").hidden = G.mode !== "name"; $("#quizOpts").hidden = G.mode !== "quiz";
   $("#sidoPick").hidden = G.mode !== "name" || G.lv !== 2;
-  $("#brandSub").textContent = (G.mode === "quiz" ? "지리 문제" : "이름 찾기") + " · 2026년 7월 행정구역";
+  $("#brandSub").textContent = gameBy[G.game].title + " · 2026년 7월 행정구역";
   $("#howTo").textContent = G.mode === "quiz"
     ? "문제를 읽고 정답인 곳을 지도에서 눌러요. 맞히거나 놓치면 해설을 보여 줘요. 한 문제에 기회는 세 번이에요."
     : "이름을 보고 지도에서 그곳을 눌러요. 한 문제에 기회는 세 번이에요.";
@@ -455,7 +526,6 @@ function paintMenu() {
   $("#bestLine").textContent = b ? `여기 최고 기록: ${b.score}점 (${b.of}문제, ${fmtT(b.t)})` : "";
   preview();
 }
-$("#modeChips").onclick = (e) => { const b = e.target.closest("button"); if (b) { G.mode = b.dataset.m; store.set("mode", G.mode); paintMenu(); } };
 $("#stages").onclick = (e) => { const b = e.target.closest("button"); if (b) { G.lv = +b.dataset.lv; paintMenu(); } };
 $("#sidoChips").onclick = (e) => { const b = e.target.closest("button"); if (b) { G.sido = b.dataset.s; store.set("sido", G.sido); paintMenu(); } };
 $("#catChips").onclick = (e) => { const b = e.target.closest("button"); if (b) { G.cat = b.dataset.c; paintMenu(); } };
@@ -641,8 +711,10 @@ function finish(quit) {
 }
 $("#goBtn").onclick = () => start();
 $("#againBtn").onclick = () => start();
-$("#homeBtn").onclick = () => { show("menu"); $("#legend").hidden = true; paintMenu(); };
-function show(id) { ["menu", "play", "result"].forEach((s) => ($("#" + s).hidden = s !== id)); }
+$("#homeBtn").onclick = () => { $("#legend").hidden = true; goHome(); };
+function show(id) { ["home", "setup", "play", "result"].forEach((s) => ($("#" + s).hidden = s !== id)); $("#panel").scrollTop = 0; }
 
-paintMenu();
+// 주소 끝에 #quiz 처럼 게임 이름이 있으면 그 게임 설정을 바로 열어요(수업 때 링크로 나눠 주기)
+const startHash = location.hash.slice(1);
+if (gameBy[startHash] && gameBy[startHash].engine) openGame(startHash); else goHome();
 </script>

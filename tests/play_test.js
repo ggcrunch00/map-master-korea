@@ -11,7 +11,7 @@ const OUT = process.argv[2];
     p.on("console", (m) => m.type() === "error" && errs.push(lv + " console: " + m.text()));
     await p.goto("http://localhost:8140/index.html");
     await p.waitForTimeout(600);
-    await p.click('#modeChips [data-m="name"]');
+    await p.click('.card[data-g="find"]');
     await p.click(`.stage[data-lv="${lv}"]`);
     if (lv === 2) await p.click('#sidoChips [data-s="12"]');
     await p.click("#goBtn");

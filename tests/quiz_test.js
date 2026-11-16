@@ -9,7 +9,7 @@ const [OUT, VW = "1280", VH = "800"] = process.argv.slice(2);
   p.on("pageerror", (e) => errs.push(e.message));
   await p.goto("http://localhost:8140/index.html");
   await p.waitForTimeout(600);
-  await p.click('#modeChips [data-m="quiz"]');
+  await p.click('.card[data-g="quiz"]');
   await p.click('#countChips [data-n="0"]');
   await p.click("#goBtn");
   const n = await p.evaluate(() => Q.length);
