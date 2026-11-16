@@ -9,7 +9,8 @@
 | 묶음 | 게임 | 상태 |
 |---|---|---|
 | 지도 탐험 | 이름 찾기 `#find` (시도 16 · 시군구 230) | 완성 |
-| 지도 탐험 | 빈 지도 채우기, 모양 보고 맞히기, 숨은 고장 찾기, 이웃 따라 여행 | 준비 중 |
+| 지도 탐험 | 빈 지도 채우기 `#fill` (이름을 써서 지도 채우기, 시간 제한·연습) | 완성 |
+| 지도 탐험 | 모양 보고 맞히기, 숨은 고장 찾기, 이웃 따라 여행 | 준비 중 |
 | 교과서 탐구 | 국토 지리 문제 `#quiz` (43문제, 분야 4개) | 완성 |
 | 교과서 탐구 | 특산물 고향 찾기, 우리 고장 | 준비 중 |
 | 역사 탐방 | 역사의 현장 | 준비 중 |
@@ -27,7 +28,7 @@
 | `data/geo.js` | 지리 문제 은행(형식은 파일 위 설명 참고) |
 | `tools/make_map.sh` (`prep_units.py`, `build_map.py`) | 행정동 경계 → 게임 지도 만들기 |
 | `tests/check_questions.js` | 문제 은행 점검(정답 지역이 지도에 있는지 등) |
-| `tests/quiz_test.js`, `tests/play_test.js` | 자동 플레이 점검(지리 문제, 이름 찾기) |
+| `tests/quiz_test.js`, `tests/play_test.js`, `tests/fill_test.js` | 자동 플레이 점검(국토 지리 문제, 이름 찾기, 빈 지도 채우기) |
 
 ## 출처
 - 경계: 통계청 SGIS 행정동 경계를 [vuski/admdongkor](https://github.com/vuski/admdongkor)(MIT)가 정리한 ver20260701 자료를 가공
