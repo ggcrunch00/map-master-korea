@@ -53,6 +53,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
 button:focus-visible, [tabindex]:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
 
 .app { display: grid; grid-template-columns: minmax(300px, 360px) 1fr; height: 100%; }
+.panel > * { flex-shrink: 0; }
 .panel {
   background: var(--panel); border-right: 1px solid var(--panel-line);
   padding-block: 20px; padding-left: max(18px, env(safe-area-inset-left, 0px)); padding-right: 18px;
@@ -99,6 +100,14 @@ button:focus-visible, [tabindex]:focus-visible { outline: 3px solid var(--accent
 .tries i.used { background: var(--bad); }
 .feedback { min-height: 3.2em; margin: 0; font-size: 0.98rem; line-height: 1.5; word-break: keep-all; }
 .feedback.ok { color: var(--ok); font-weight: 700; }
+.feedback .ex { display: block; color: var(--ink); font-weight: 400; margin-top: 6px; }
+.prompt .name.long { font-family: var(--body); font-weight: 700; font-size: 1.12rem; line-height: 1.5; }
+.chip small { color: var(--muted); font-size: 0.75rem; margin-left: 2px; }
+.chip[aria-pressed="true"] small { color: inherit; opacity: 0.7; }
+.seg { display: grid; grid-template-columns: 1fr 1fr; }
+.seg .chip { border-radius: 8px; padding: 9px; font-weight: 700; }
+.review-ex { margin: 8px 0 0; font-size: 0.86rem; line-height: 1.55; color: var(--ink); word-break: keep-all; }
+button:disabled { opacity: 0.45; cursor: default; }
 .feedback.no { color: var(--bad); font-weight: 700; }
 .bar { height: 6px; background: var(--chip); border-radius: 3px; overflow: hidden; }
 .bar i { display: block; height: 100%; width: 0; background: var(--accent); transition: width .3s; }
@@ -149,10 +158,13 @@ button:focus-visible, [tabindex]:focus-visible { outline: 3px solid var(--accent
   .app { grid-template-columns: 1fr; grid-template-rows: auto 1fr; }
   .panel { border-right: 0; border-bottom: 1px solid var(--panel-line); max-height: 64vh; padding-block: 12px; padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-left: max(16px, env(safe-area-inset-left, 0px)); gap: 12px; }
   .brand h1 { font-size: 1.4rem; }
-  .play-mode .brand, .play-mode .hide-sm { display: none; }
-  .play-mode .panel { max-height: 44vh; }
+  .play-mode .brand { display: none; }
+  .play-row .ghost { padding: 7px; font-size: 0.85rem; }
+  #nextBtn { padding: 10px; font-size: 1.1rem; }
+  .play-mode .panel { max-height: 50vh; }
   .prompt { padding: 12px 14px; }
   .prompt .name { font-size: 1.7rem; }
+  .prompt .name.long { font-size: 1rem; }
   .feedback { min-height: 1.6em; font-size: 0.9rem; }
   .legend { display: none; }
 }
@@ -162,7 +174,7 @@ button:focus-visible, [tabindex]:focus-visible { outline: 3px solid var(--accent
 <div class="app" id="app">
   <aside class="panel" id="panel">
     <div class="brand">
-      <h1>지도 마스터 코리아<small>찍기 · 2026년 7월 행정구역</small></h1>
+      <h1>지도 마스터 코리아<small id="brandSub">지리 문제 · 2026년 7월 행정구역</small></h1>
       <button class="icon-btn" id="soundBtn" aria-label="소리 끄기" title="소리">
         <svg viewBox="0 0 24 24" id="soundIcon"><path d="M4 9h4l5-4v14l-5-4H4z"/><path d="M16.5 8.5a5 5 0 0 1 0 7"/></svg>
       </button>
@@ -171,6 +183,17 @@ button:focus-visible, [tabindex]:focus-visible { outline: 3px solid var(--accent
     <!-- 처음 화면 -->
     <section id="menu" style="display:contents">
       <div>
+        <p class="label">놀이</p>
+        <div class="chips seg" id="modeChips">
+          <button class="chip" data-m="quiz" aria-pressed="true">지리 문제</button>
+          <button class="chip" data-m="name" aria-pressed="false">이름 찾기</button>
+        </div>
+      </div>
+      <div id="quizOpts">
+        <p class="label">분야</p>
+        <div class="chips" id="catChips"></div>
+      </div>
+      <div id="nameOpts">
         <p class="label">단계</p>
         <div class="stages" id="stages">
           <button class="stage" data-lv="1" aria-pressed="true"><span class="lv">1</span><b>시도 찾기</b><span>전국 16개 시도</span></button>
@@ -192,7 +215,7 @@ button:focus-visible, [tabindex]:focus-visible { outline: 3px solid var(--accent
       </div>
       <button class="go" id="goBtn">시작하기</button>
       <p class="best" id="bestLine"></p>
-      <p class="note">이름을 보고 지도에서 그곳을 눌러요. 한 문제에 기회는 세 번이에요. 지도는 끌어서 옮기고, 휠이나 두 손가락으로 크게 볼 수 있어요.<br><br>2026년 7월 1일 행정구역 기준(전남광주통합특별시, 인천 제물포구·영종구·서해구·검단구 반영). 경계: 통계청 SGIS 행정동 경계를 admdongkor(MIT)가 정리한 자료를 가공.</p>
+      <p class="note"><span id="howTo"></span> 지도는 끌어서 옮기고, 휠이나 두 손가락으로 크게 볼 수 있어요.<br><br>2026년 7월 1일 행정구역 기준(전남광주통합특별시, 인천 제물포구·영종구·서해구·검단구 반영). 경계: 통계청 SGIS 행정동 경계를 admdongkor(MIT)가 정리한 자료를 가공.</p>
     </section>
 
     <!-- 문제 화면 -->
@@ -210,7 +233,8 @@ button:focus-visible, [tabindex]:focus-visible { outline: 3px solid var(--accent
         <div class="tries" id="tries"><i></i><i></i><i></i></div>
       </div>
       <p class="feedback" id="feedback" aria-live="polite"></p>
-      <div class="row hide-sm">
+      <button class="go" id="nextBtn" hidden>다음 문제</button>
+      <div class="row play-row">
         <button class="ghost" id="skipBtn">모르겠어요</button>
         <button class="ghost" id="quitBtn">그만하기</button>
       </div>
@@ -231,6 +255,7 @@ button:focus-visible, [tabindex]:focus-visible { outline: 3px solid var(--accent
       <div>
         <p class="label">다시 볼 곳 (누르면 지도에서 보여요)</p>
         <div class="review" id="review"></div>
+        <p class="review-ex" id="reviewEx"></p>
       </div>
       <button class="go" id="againBtn">다시 하기</button>
       <div class="row">
@@ -256,6 +281,7 @@ button:focus-visible, [tabindex]:focus-visible { outline: 3px solid var(--accent
 </div>
 
 <script src="data/map.js"></script>
+<script src="data/geo.js"></script>
 <script>
 "use strict";
 // ───────── 준비 ─────────
@@ -364,10 +390,10 @@ function unitAt(cx, cy) {
   const t = document.elementFromPoint(cx, cy); const p = t && t.closest && t.closest("path.u");
   return p && !p.classList.contains("off") ? unitBy[p.dataset.c] : null;
 }
-// 1단계는 시도 전체를 한꺼번에 밝힘
+// 시도 단위 문제는 시도 전체를 한꺼번에 밝힘
 let hotSido = null;
 function hover(e) {
-  if (G.lv !== 1 || !G.on) return;
+  if (!G.on || !cur() || !cur().sidoLv) return;
   const u = unitAt(e.clientX, e.clientY); const s = u ? u.s : null;
   if (s === hotSido) return;
   if (hotSido) unitsOfSido(hotSido).forEach((x) => x.el.classList.remove("hot"));
@@ -407,137 +433,210 @@ $("#soundBtn").onclick = () => { soundOn = !soundOn; store.set("sound", soundOn)
 paintSound();
 
 // ───────── 처음 화면 ─────────
-const G = { lv: 1, sido: store.get("sido", "11"), n: 10, on: false };
+// mode: "quiz"(지리 문제) | "name"(이름 찾기)
+const G = { mode: store.get("mode", "quiz"), lv: 1, sido: store.get("sido", "11"), cat: "전체", n: 10, on: false };
+const QB = window.GEO_Q || [];
+const CATS = ["전체", ...new Set(QB.map((q) => q.cat))];
 const SIDO2 = M.sido.filter((s) => unitsOfSido(s.c).length > 1);
 $("#sidoChips").innerHTML = SIDO2.map((s) => `<button class="chip" data-s="${s.c}" aria-pressed="false">${s.short}</button>`).join("");
+$("#catChips").innerHTML = CATS.map((c) => `<button class="chip" data-c="${c}" aria-pressed="false">${c} <small>${c === "전체" ? QB.length : QB.filter((q) => q.cat === c).length}</small></button>`).join("");
 function pressed(box, attr, val) { box.querySelectorAll("button").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset[attr] === String(val)))); }
-function bestKey() { return G.lv === 2 ? "best2." + G.sido : "best" + G.lv; }
+function bestKey() { return G.mode === "quiz" ? "bestQ." + G.cat : G.lv === 2 ? "best2." + G.sido : "best" + G.lv; }
 function paintMenu() {
-  pressed($("#stages"), "lv", G.lv); pressed($("#sidoChips"), "s", G.sido); pressed($("#countChips"), "n", G.n);
-  $("#sidoPick").hidden = G.lv !== 2;
+  pressed($("#modeChips"), "m", G.mode); pressed($("#stages"), "lv", G.lv); pressed($("#sidoChips"), "s", G.sido);
+  pressed($("#catChips"), "c", G.cat); pressed($("#countChips"), "n", G.n);
+  $("#nameOpts").hidden = G.mode !== "name"; $("#quizOpts").hidden = G.mode !== "quiz";
+  $("#sidoPick").hidden = G.mode !== "name" || G.lv !== 2;
+  $("#brandSub").textContent = (G.mode === "quiz" ? "지리 문제" : "이름 찾기") + " · 2026년 7월 행정구역";
+  $("#howTo").textContent = G.mode === "quiz"
+    ? "문제를 읽고 정답인 곳을 지도에서 눌러요. 맞히거나 놓치면 해설을 보여 줘요. 한 문제에 기회는 세 번이에요."
+    : "이름을 보고 지도에서 그곳을 눌러요. 한 문제에 기회는 세 번이에요.";
   const b = store.get(bestKey(), null);
-  $("#bestLine").textContent = b ? `이 단계 최고 기록: ${b.score}점 (${b.of}문제, ${fmtT(b.t)})` : "";
+  $("#bestLine").textContent = b ? `여기 최고 기록: ${b.score}점 (${b.of}문제, ${fmtT(b.t)})` : "";
   preview();
 }
+$("#modeChips").onclick = (e) => { const b = e.target.closest("button"); if (b) { G.mode = b.dataset.m; store.set("mode", G.mode); paintMenu(); } };
 $("#stages").onclick = (e) => { const b = e.target.closest("button"); if (b) { G.lv = +b.dataset.lv; paintMenu(); } };
 $("#sidoChips").onclick = (e) => { const b = e.target.closest("button"); if (b) { G.sido = b.dataset.s; store.set("sido", G.sido); paintMenu(); } };
+$("#catChips").onclick = (e) => { const b = e.target.closest("button"); if (b) { G.cat = b.dataset.c; paintMenu(); } };
 $("#countChips").onclick = (e) => { const b = e.target.closest("button"); if (b) { G.n = +b.dataset.n; paintMenu(); } };
 function clearMap() {
   M.units.forEach((u) => (u.el.className.baseVal = "u")); gTags.innerHTML = "";
 }
-// 고른 단계를 지도에 미리 보여 줌
+// 고른 놀이를 지도에 미리 보여 줌
 function preview() {
-  clearMap(); svg.classList.toggle("lv1", G.lv === 1);
-  if (G.lv === 2) {
+  clearMap(); svg.classList.toggle("lv1", G.mode === "name" && G.lv === 1);
+  if (G.mode === "name" && G.lv === 2) {
     M.units.forEach((u) => u.s !== G.sido && u.el.classList.add("off"));
     home = boxOf(unitsOfSido(G.sido).map((u) => u.el));
   } else home = { x: 0, y: 0, width: M.w, height: M.h };
   fitHome();
 }
 
+// ───────── 문제 만들기 ─────────
+// 모든 문제를 같은 꼴로: title(크게 보일 글), sub, sidoLv(시도 단위), groups(정답 묶음마다 시군구 코드들), all, label, ex, key
+const sidoByName = Object.fromEntries(M.sido.map((s) => [s.n, s]));
+function unitByLabel(a) {
+  const m = a.match(/^(\S+) (.+)$/);
+  if (m) return M.units.find((u) => u.n === m[2] && sidoBy[u.s].short === m[1]);
+  return M.units.find((u) => u.n === a);
+}
+function fromName(kind, c) {
+  if (kind === "sido") { const s = sidoBy[c]; return { title: s.n, sidoLv: true, groups: [unitsOfSido(c).map((u) => u.c)], label: s.n, key: "s" + c }; }
+  const u = unitBy[c];
+  const dup = G.lv === 3 && nameCount[u.n] > 1;
+  return { title: u.n, sub: dup ? sidoBy[u.s].n : (G.lv === 2 ? sidoBy[G.sido].n : ""), sidoLv: false, groups: [[c]], label: dup ? `${sidoBy[u.s].short} ${u.n}` : u.n, key: "u" + c };
+}
+function fromQuiz(q) {
+  const groups = q.a.map((a) => (q.lv === "sido" ? unitsOfSido(sidoByName[a].c).map((u) => u.c) : [unitByLabel(a).c]));
+  return { quiz: true, title: q.q, sub: q.cat, sidoLv: q.lv === "sido", groups, all: !!q.all, label: q.k, ex: q.ex, answers: q.a, key: q.id };
+}
+function pool() {
+  if (G.mode === "quiz") return QB.filter((q) => G.cat === "전체" || q.cat === G.cat).map(fromQuiz);
+  if (G.lv === 1) return M.sido.map((s) => fromName("sido", s.c));
+  const us = G.lv === 2 ? unitsOfSido(G.sido) : M.units;
+  return us.map((u) => fromName("unit", u.c));
+}
+
 // ───────── 게임 ─────────
-let Q = [], qi = 0, tries = 0, score = 0, t0 = 0, timer = 0, log = [], busy = false;
+let Q = [], qi = 0, tries = 0, score = 0, t0 = 0, timer = 0, log = [], busy = false, found = new Set();
 const shuffle = (a) => { for (let i = a.length - 1; i > 0; i--) { const j = (Math.random() * (i + 1)) | 0; [a[i], a[j]] = [a[j], a[i]]; } return a; };
 const fmtT = (ms) => { const s = Math.round(ms / 1000); return `${(s / 60) | 0}:${String(s % 60).padStart(2, "0")}`; };
 const PTS = [100, 50, 20];
+const cur = () => Q[qi];
 
-function pool() {
-  if (G.lv === 1) return M.sido.map((s) => ({ kind: "sido", c: s.c, n: s.n }));
-  const us = G.lv === 2 ? unitsOfSido(G.sido) : M.units;
-  return us.map((u) => ({ kind: "unit", c: u.c, n: u.n }));
-}
 function start(list) {
   const all = list || shuffle(pool());
   Q = G.n && !list ? all.slice(0, G.n) : all;
   qi = 0; score = 0; log = []; G.on = true; busy = false;
   preview();
-  show("play"); $("#legend").hidden = false; svg.parentElement.parentElement.classList.add("play-mode"); svg.classList.add("play");
+  show("play"); $("#legend").hidden = false; $("#app").classList.add("play-mode"); svg.classList.add("play");
   t0 = performance.now(); clearInterval(timer);
   timer = setInterval(() => ($("#clock").textContent = fmtT(performance.now() - t0)), 250);
   ask();
 }
 function ask() {
-  const q = Q[qi]; tries = 0; busy = false;
+  const q = cur(); tries = 0; busy = false; found = new Set();
   $("#qNum").textContent = `${qi + 1}/${Q.length}`; $("#score").textContent = score;
   $("#prog").style.width = (qi / Q.length) * 100 + "%";
-  $("#pName").textContent = q.n;
-  // 같은 이름이 여러 곳이면(중구·동구·고성군 등) 시도를 함께 보여 줌
-  const u = unitBy[q.c];
-  $("#pSub").textContent = q.kind === "unit" && G.lv === 3 && nameCount[q.n] > 1 ? sidoBy[u.s].n : (G.lv === 2 ? sidoBy[G.sido].n : "");
+  $("#pName").textContent = q.title; $("#pName").classList.toggle("long", !!q.quiz);
+  $("#pSub").textContent = q.sub || "";
+  paintAsk();
   $("#feedback").textContent = ""; $("#feedback").className = "feedback";
+  $("#nextBtn").hidden = true; $("#skipBtn").disabled = false;
+  // 시도 단위 문제면 시군구 경계선을 숨김
+  svg.classList.toggle("lv1", q.sidoLv); gTags.innerHTML = "";
+  if (q.quiz) clearMap(); // 지리 문제는 문제마다 지도를 비움(이름 찾기는 색이 쌓임)
   paintTries();
 }
+function paintAsk() {
+  const q = cur();
+  $("#pAsk").textContent = q.all ? `${q.groups.length}곳 중 ${found.size}곳 찾았어요.` : q.quiz ? "지도에서 눌러요." : "어디에 있을까요? 지도에서 눌러요.";
+}
 function paintTries() { $("#tries").querySelectorAll("i").forEach((d, i) => d.classList.toggle("used", i < tries)); }
-function targetEls(q) { return q.kind === "sido" ? unitsOfSido(q.c).map((u) => u.el) : [unitBy[q.c].el]; }
-function nameOf(u) { return G.lv === 1 ? sidoBy[u.s].n : (G.lv === 3 && nameCount[u.n] > 1 ? `${sidoBy[u.s].short} ${u.n}` : u.n); }
-function centerOf(q) {
-  if (q.kind === "sido") { const s = sidoBy[q.c]; return [s.x, s.y]; }
-  const u = unitBy[q.c]; return [u.x, u.y];
+const elsOf = (codes) => codes.map((c) => unitBy[c].el);
+function groupCenter(codes) {
+  // 가장 넓은 시군구 중심(시도면 시도 중심)
+  if (codes.length > 1) { const s = sidoBy[unitBy[codes[0]].s]; if (codes.length === unitsOfSido(s.c).length) return [s.x, s.y]; }
+  const u = unitBy[codes[0]]; return [u.x, u.y];
+}
+function groupName(q, gi) { return q.answers ? q.answers[gi] : q.label; }
+function placeName(u) {
+  const q = cur();
+  if (q.sidoLv) return sidoBy[u.s].n;
+  return nameCount[u.n] > 1 ? `${sidoBy[u.s].short} ${u.n}` : u.n;
 }
 
 function clickAt(cx, cy) {
   if (!G.on || busy) return;
   const u = unitAt(cx, cy); if (!u) return;
-  const q = Q[qi];
-  const hit = q.kind === "sido" ? u.s === q.c : u.c === q.c;
-  const p = toSvg(cx, cy);
-  if (hit) {
-    busy = true; score += PTS[tries]; sfx.ok();
-    targetEls(q).forEach((e) => e.classList.add(tries === 0 ? "g1" : "g2"));
-    log.push({ q, tries, ok: true });
-    $("#feedback").textContent = tries === 0 ? "맞아요! 한 번에 찾았어요." : "맞아요!"; $("#feedback").className = "feedback ok";
-    tag(q.n, p.x, p.y, "ok", 1100);
-    setTimeout(next, 750);
+  const q = cur(); const p = toSvg(cx, cy);
+  const gi = q.groups.findIndex((g) => g.includes(u.c));
+  if (gi >= 0 && found.has(gi)) return; // 이미 찾은 곳
+  if (gi >= 0) {
+    found.add(gi); sfx.ok();
+    elsOf(q.groups[gi]).forEach((e) => e.classList.add(tries === 0 ? "g1" : "g2"));
+    tag(groupName(q, gi), p.x, p.y, "ok", q.quiz ? 0 : 1100);
+    if (q.all && found.size < q.groups.length) {
+      paintAsk();
+      $("#feedback").textContent = `맞아요! ${q.groups.length - found.size}곳 더 찾아요.`; $("#feedback").className = "feedback ok";
+      return;
+    }
+    paintAsk(); busy = true; score += PTS[tries]; log.push({ q, tries, ok: true });
+    done(tries === 0 ? "맞아요! 한 번에 찾았어요." : "맞아요!", "ok");
   } else {
     tries++; paintTries(); sfx.no();
-    const wrongEls = G.lv === 1 ? unitsOfSido(u.s).map((x) => x.el) : [u.el];
+    const wrongEls = q.sidoLv ? unitsOfSido(u.s).map((x) => x.el) : [u.el];
     wrongEls.forEach((e) => { e.classList.add("wrong"); setTimeout(() => e.classList.remove("wrong"), 700); });
-    tag(nameOf(u), p.x, p.y, "bad", 1300);
+    tag(placeName(u), p.x, p.y, "bad", 1300);
     if (tries < 3) {
-      $("#feedback").textContent = `여기는 ${nameOf(u)}예요. 다시 찾아봐요 (기회 ${3 - tries}번 남음).`; $("#feedback").className = "feedback no";
-    } else miss(q);
+      $("#feedback").textContent = `여기는 ${placeName(u)}예요. 다시 찾아봐요 (기회 ${3 - tries}번 남음).`; $("#feedback").className = "feedback no";
+    } else miss();
   }
 }
-function miss(q) {
-  busy = true; log.push({ q, tries: 3, ok: false });
-  $("#feedback").textContent = `정답은 깜빡이는 곳이에요. ${q.n}을(를) 기억해 둬요.`; $("#feedback").className = "feedback no";
-  const els = targetEls(q);
-  // 화면 밖에 있으면 정답 쪽으로 옮겨 보여 줌
-  const b = boxOf(els); const [x, y] = centerOf(q);
-  if (b.x < vb.x || b.y < vb.y || b.x + b.width > vb.x + vb.w || b.y + b.height > vb.y + vb.h) { vb.x = x - vb.w / 2; vb.y = y - vb.h / 2; setVB(); }
-  els.forEach((e) => e.classList.add("reveal"));
-  tag(q.n, x, y, "", 1900);
-  setTimeout(() => { els.forEach((e) => { e.classList.remove("reveal"); e.classList.add("g0"); }); next(); }, 2000);
+// 한 문제가 끝남: 지리 문제는 해설을 보여 주고 '다음 문제'를 기다림, 이름 찾기는 바로 넘어감
+function done(msg, kind) {
+  const q = cur();
+  $("#feedback").className = "feedback " + kind;
+  if (q.quiz) {
+    $("#feedback").innerHTML = `<b>${msg}</b><span class="ex">${q.ex}</span>`;
+    $("#nextBtn").hidden = false; $("#skipBtn").disabled = true;
+    $("#nextBtn").textContent = qi + 1 >= Q.length ? "결과 보기" : "다음 문제";
+    $("#nextBtn").focus({ preventScroll: true });
+    $("#nextBtn").scrollIntoView({ block: "nearest" });
+  } else {
+    $("#feedback").textContent = msg;
+    setTimeout(next, kind === "ok" ? 750 : 2000);
+  }
 }
-$("#skipBtn").onclick = () => { if (G.on && !busy) { tries = 3; paintTries(); sfx.no(); miss(Q[qi]); } };
+function miss() {
+  const q = cur(); busy = true; log.push({ q, tries: 3, ok: false });
+  const rest = q.groups.map((g, i) => i).filter((i) => !found.has(i));
+  const els = rest.flatMap((i) => elsOf(q.groups[i]));
+  // 정답이 화면 밖이면 정답이 다 보이게 옮김
+  const b = boxOf(els);
+  if (b.x < vb.x || b.y < vb.y || b.x + b.width > vb.x + vb.w || b.y + b.height > vb.y + vb.h) fitBox(boxOf(q.groups.flat().map((c) => unitBy[c].el)), q.sidoLv ? 0.3 : 1.2);
+  els.forEach((e) => e.classList.add("reveal"));
+  rest.forEach((i) => { const [x, y] = groupCenter(q.groups[i]); tag(groupName(q, i), x, y, "", q.quiz ? 0 : 1900); });
+  setTimeout(() => els.forEach((e) => { e.classList.remove("reveal"); e.classList.add("g0"); }), 2000);
+  done(q.quiz ? "정답은 깜빡이는 곳이에요." : `정답은 깜빡이는 곳이에요. ${q.label}을(를) 기억해 둬요.`, "no");
+}
+$("#skipBtn").onclick = () => { if (G.on && !busy) { tries = 3; paintTries(); sfx.no(); miss(); } };
 $("#quitBtn").onclick = () => { if (G.on) finish(true); };
+$("#nextBtn").onclick = () => { if (G.on && busy) { gTags.innerHTML = ""; next(); } };
+document.addEventListener("keydown", (e) => { if (e.key === "Enter" && !$("#nextBtn").hidden && G.on) { e.preventDefault(); $("#nextBtn").click(); } });
 function next() { qi++; if (qi >= Q.length) finish(); else ask(); }
 
 function finish(quit) {
-  G.on = false; clearInterval(timer); busy = false; svg.classList.remove("play");
+  G.on = false; clearInterval(timer); busy = false; svg.classList.remove("play"); $("#nextBtn").hidden = true;
+  if (Q.length && Q[0].quiz) { clearMap(); fitHome(); }
   const t = performance.now() - t0; $("#prog").style.width = "100%";
-  const done = log.length, max = done * 100;
+  const n = log.length, max = n * 100;
   $("#rTitle").textContent = quit ? "그만한 곳까지 결과" : "결과";
   $("#rScore").textContent = score; $("#rMax").textContent = max;
-  $("#rFirst").textContent = `${log.filter((l) => l.ok && l.tries === 0).length} / ${done}`;
-  $("#rOk").textContent = `${log.filter((l) => l.ok).length} / ${done}`;
+  $("#rFirst").textContent = `${log.filter((l) => l.ok && l.tries === 0).length} / ${n}`;
+  $("#rOk").textContent = `${log.filter((l) => l.ok).length} / ${n}`;
   $("#rTime").textContent = fmtT(t);
   const key = bestKey(), best = store.get(key, null);
-  if (!quit && done && (!best || score > best.score || (score === best.score && t < best.t))) store.set(key, { score, of: done, t });
+  if (!quit && n && (!best || score > best.score || (score === best.score && t < best.t))) store.set(key, { score, of: n, t });
   const nb = store.get(key, null); $("#rBest").textContent = nb ? `${nb.score}점` : "-";
   const wrong = log.filter((l) => !l.ok || l.tries > 0);
   $("#review").innerHTML = wrong.length
-    ? wrong.map((l, i) => `<button data-i="${i}">${l.q.n}${l.q.kind === "unit" && G.lv === 3 && nameCount[l.q.n] > 1 ? `<em>${sidoBy[unitBy[l.q.c].s].short}</em>` : ""}<em>${l.ok ? "늦게 맞힘" : "놓침"}</em></button>`).join("")
+    ? wrong.map((l, i) => `<button data-i="${i}">${l.q.label}<em>${l.ok ? "늦게 맞힘" : "놓침"}</em></button>`).join("")
     : '<p class="allok">모두 한 번에 맞혔어요!</p>';
+  $("#reviewEx").textContent = "";
   $("#review").onclick = (e) => {
     const b = e.target.closest("button"); if (!b) return; const q = wrong[+b.dataset.i].q;
-    M.units.forEach((u) => u.el.classList.remove("look")); gTags.innerHTML = "";
-    const els = targetEls(q); els.forEach((x) => x.classList.add("look"));
-    const bx = boxOf(els); fitBox(bx, G.lv === 1 ? 0.6 : 2.5); const [x, y] = centerOf(q); tag(q.n, x, y);
+    if (q.quiz) clearMap(); else M.units.forEach((u) => u.el.classList.remove("look"));
+    gTags.innerHTML = ""; svg.classList.toggle("lv1", q.sidoLv);
+    const els = q.groups.flat().map((c) => unitBy[c].el); els.forEach((x) => x.classList.add("look"));
+    fitBox(boxOf(els), q.sidoLv ? 0.4 : (els.length > 1 ? 0.5 : 2.5));
+    q.groups.forEach((g, i) => { const [x, y] = groupCenter(g); tag(groupName(q, i), x, y); });
+    $("#reviewEx").textContent = q.ex ? `${q.title} — ${q.ex}` : "";
   };
   $("#retryWrongBtn").hidden = !wrong.length;
   $("#retryWrongBtn").onclick = () => start(shuffle(wrong.map((l) => l.q)));
-  show("result"); svg.parentElement.parentElement.classList.remove("play-mode");
+  show("result"); $("#app").classList.remove("play-mode");
   if (!quit) sfx.end();
 }
 $("#goBtn").onclick = () => start();

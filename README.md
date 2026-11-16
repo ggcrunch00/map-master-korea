@@ -4,6 +4,7 @@
 서버 없이 돌아가는 정적 웹페이지이고, GitHub Pages로 배포합니다.
 
 ## 지금 할 수 있는 것
+- **지리 문제**: 문제를 읽고 정답 지역을 지도에서 누르기, 맞히거나 놓치면 해설. 분야 4개(산·강·호수, 바다·섬·갯벌, 도시·행정, 가장 ~한 곳), 43문제
 - **이름 찾기(찍기)**: 1단계 시도 16 · 2단계 시도 안 시군구 · 3단계 전국 시군구 230
 
 ## 행정구역 기준
@@ -14,8 +15,10 @@
 |---|---|
 | `index.html` | 게임 전체 |
 | `data/map.js` | 지도(자동 생성, 직접 고치지 않음) |
+| `data/geo.js` | 지리 문제 은행(형식은 파일 위 설명 참고) |
 | `tools/make_map.sh` (`prep_units.py`, `build_map.py`) | 행정동 경계 → 게임 지도 만들기 |
-| `tests/play_test.js` | 자동 플레이 점검 |
+| `tests/check_questions.js` | 문제 은행 점검(정답 지역이 지도에 있는지 등) |
+| `tests/quiz_test.js`, `tests/play_test.js` | 자동 플레이 점검(지리 문제, 이름 찾기) |
 
 ## 출처
 - 경계: 통계청 SGIS 행정동 경계를 [vuski/admdongkor](https://github.com/vuski/admdongkor)(MIT)가 정리한 ver20260701 자료를 가공

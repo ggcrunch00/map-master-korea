@@ -11,6 +11,7 @@ const OUT = process.argv[2];
     p.on("console", (m) => m.type() === "error" && errs.push(lv + " console: " + m.text()));
     await p.goto("http://localhost:8140/index.html");
     await p.waitForTimeout(600);
+    await p.click('#modeChips [data-m="name"]');
     await p.click(`.stage[data-lv="${lv}"]`);
     if (lv === 2) await p.click('#sidoChips [data-s="12"]');
     await p.click("#goBtn");
@@ -18,12 +19,14 @@ const OUT = process.argv[2];
     for (let i = 0; i < n; i++) {
       // 일부러 첫 문제는 한 번 틀리기
       const pt = await p.evaluate(({ wrong }) => {
-        const q = Q[qi];
-        let u = q.kind === "sido" ? M.units.filter((x) => x.s === q.c).sort((a, b) => b.el.getBBox().width * b.el.getBBox().height - a.el.getBBox().width * a.el.getBBox().height)[0] : unitBy[q.c];
-        if (wrong) u = M.units.find((x) => (q.kind === "sido" ? x.s !== q.c : x.c !== q.c) && !x.el.classList.contains("off"));
-        const m = svg.getScreenCTM(); const r = new DOMPoint(u.x, u.y).matrixTransform(m);
+        const q = cur();
+        // 정답 묶음에서 가장 넓은 시군구(시도 문제는 시도 안 가장 넓은 곳)
+        let c = q.groups[0].slice().sort((a, b) => { const A = unitBy[a].el.getBBox(), B = unitBy[b].el.getBBox(); return B.width * B.height - A.width * A.height; })[0];
+        if (wrong) c = M.units.find((x) => !q.groups[0].includes(x.c) && !x.el.classList.contains("off")).c;
+        const u = unitBy[c];
+        const r = new DOMPoint(u.x, u.y).matrixTransform(svg.getScreenCTM());
         const hit = document.elementFromPoint(r.x, r.y);
-        return { x: r.x, y: r.y, ok: !!(hit && hit.closest && hit.closest("path.u") && hit.closest("path.u").dataset.c === u.c), name: u.n };
+        return { x: r.x, y: r.y, ok: !!(hit && hit.closest && hit.closest("path.u") && hit.closest("path.u").dataset.c === c), name: u.n };
       }, { wrong: i === 0 });
       if (!pt.ok) { miss++; }
       await p.mouse.click(pt.x, pt.y);
@@ -31,7 +34,7 @@ const OUT = process.argv[2];
         await p.waitForTimeout(150);
         if (opts.shotWrong) await p.screenshot({ path: `${OUT}/lv${lv}_wrong_${vw}.png` });
         await p.waitForTimeout(200);
-        const pt2 = await p.evaluate(() => { const q = Q[qi]; const u = q.kind === "sido" ? M.units.filter((x) => x.s === q.c).sort((a, b) => b.el.getBBox().width * b.el.getBBox().height - a.el.getBBox().width * a.el.getBBox().height)[0] : unitBy[q.c]; const r = new DOMPoint(u.x, u.y).matrixTransform(svg.getScreenCTM()); return { x: r.x, y: r.y }; });
+        const pt2 = await p.evaluate(() => { const g = cur().groups[0]; const c = g.slice().sort((a, b) => { const A = unitBy[a].el.getBBox(), B = unitBy[b].el.getBBox(); return B.width * B.height - A.width * A.height; })[0]; const u = unitBy[c]; const r = new DOMPoint(u.x, u.y).matrixTransform(svg.getScreenCTM()); return { x: r.x, y: r.y }; });
         await p.mouse.click(pt2.x, pt2.y);
       }
       await p.waitForTimeout(lv === 3 ? 820 : 800);
